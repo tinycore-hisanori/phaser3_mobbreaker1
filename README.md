@@ -2,7 +2,7 @@
 This is escape game of hot item bar.
 
 
-# phaser3.js HTML5サンプルゲーム Vol.8「勇者ブレイカー」
+# Javascriptサンプルゲーム Vol.8「勇者ブレイカー」
  
 Phaser3.jsを使ってHTML5のゲームを作るときに参考にしてもらうためのサンプルゲームです。
 
@@ -20,7 +20,7 @@ Phaser3.jsを使ってHTML5のゲームを作るときに参考にしてもら�
  
 以下のアドレスでプレイすることができます。
 
-[勇者ブレイカー](https://tinycore-hisanori.github.io/phaser3_simpleEscape3/)
+[勇者ブレイカー](https://tinycore-hisanori.github.io/phaser3_mobbreaker1/)
 
  
 # Features
