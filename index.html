@@ -33,8 +33,9 @@
         var gameWidth = 720;
         var gameHeight = 1280;
         var stepY = 20;
+        var MAX_LIFE = 3;
         var currentScene = null;
-        var scoreRank = [3, 2, 1, 0, 0];
+        var scoreRank = [0, 0, 0, 0, 0];
 
         class walkEntity extends Phaser.GameObjects.Sprite {
             constructor(scene, charaId, x, y) {
@@ -68,6 +69,8 @@
                     }
                     seAttack.play();
                     this.destroy();
+                    objBomb.setPosition(pointer.x, pointer.y);
+                    objBomb.play("bombExplosion");
                 });
             }
             preUpdate(time, delta) {
@@ -102,17 +105,23 @@
             constructor() {
                 super({ key: "titleScene", active: true });
             }
+            preload() {
+                this.load.image("title", "title.png");
+            }
             create() {
+                let titleImg = this.add.sprite(gameWidth / 2, 100, "title");
+                /*
                 let text = this.add
                     .text(200, 100, "Yuusha Breaker!!")
                     .setFontSize(46)
                     .setColor("#ff0");
-                let clickButton = this.add.text(200, 300, "START TO CLICK", {
-                    fill: "#0f0"
-                });
-                clickButton
+                */
+                clickButton = this.add
+                    .text(200, 300, "START TO CLICK")
                     .setStroke("#0000ff", 4)
+                    .setBackgroundColor("#ddbcff")
                     .setFontSize("40px")
+                    .setColor("#0f0")
                     .setInteractive();
                 clickButton.on(
                     "pointerdown",
@@ -120,20 +129,31 @@
                         this.scene.start("gameScene1");
                     },
                     this);
+                this.tweens.add({
+                    targets: clickButton,
+                    alpha: 0.5,
+                    ease: 'Cubic.easeOut',
+                    duration: 500,
+                    repeat: -1,
+                    yoyo: true
+                })
                 //localforage.setItem("ranking", scoreRank);
                 let txtRanking = this.add
                     .text(300, 500, "<RANKING>\r\n")
                     .setFontSize(32)
-                    .setColor("#ff0");
+                    .setColor("#191970");
 
                 localforage.getItem("ranking", function (err, value) {
-                    for(var i = 0; i < 5; i++){
-                        txtRanking.text = txtRanking.text + "No."+ (i + 1) + ":" + value[i] + "\r\n";
-                        scoreRank[i] = value[i];
+                    if (value != null) {
+                        for (var i = 0; i < 5; i++) {
+                            scoreRank[i] = value[i];
+                        }
                     }
+                    for (var i = 0; i < 5; i++) {
+                        txtRanking.text = txtRanking.text + "No." + (i + 1) + ":" + scoreRank[i] + "\r\n";
+                    }
+
                 });
-
-
             }
         }
         class gameScene1 extends Phaser.Scene {
@@ -150,6 +170,10 @@
                     frameWidth: 80,
                     frameHeight: 80
                 });
+                this.load.spritesheet("bomb", "./explosion.png", {
+                    frameWidth: 64,
+                    frameHeight: 64
+                });
 
                 this.load.audio("bgm002", "gameover.mp3");
                 this.load.audio("bgm001", "bgm.mp3");
@@ -158,6 +182,10 @@
             }
             create() {
                 currentScene = this;
+                timerCnt = 0;
+                score = 0;
+                life = MAX_LIFE;
+
                 var bg001 = this.add
                     .tileSprite(0, 0, gameWidth, gameHeight, 'bg001')
                     .setOrigin(0)
@@ -192,14 +220,39 @@
                     .setFontSize(46)
                     .setColor("#ff0");
 
+                btnReturn = this.add
+                    .text(gameWidth / 2 - 100, 600, " BACK ")
+                    .setFontSize(46)
+                    .setColor("#ff0")
+                    .setBackgroundColor("#aa5500")
+                    .setInteractive();
+                btnReturn.on(
+                    "pointerdown",
+                    () => {
+                        if (bgm != null) {
+                            bgm.stop();
+                        }
+                        if (bgmOver != null) {
+                            bgmOver.stop();
+                        }
+                        this.scene.start("titleScene");
+                    },
+                    this);
+                btnReturn.visible = false;
+
+                this.anims.create({
+                    key: "bombExplosion",
+                    frameRate: 40,
+                    frames: this.anims.generateFrameNumbers("bomb", { start: 0, end: 23 }),
+                    repeat: 0
+                });
+                objBomb = this.add.sprite(-100, -100, 'bomb');
 
                 bgm = this.sound.add("bgm001", { loop: true });
                 if (!bgm.isPlaying) {
                     bgm.play();
                     console.log("play");
                 }
-
-                //playGameOver();
                 seAttack = this.sound.add("attack");
                 setPoint = this.sound.add("point");
                 bGame = true;
@@ -220,12 +273,13 @@
                     if (life <= 0) {
                         bGame = false;
                         let yourRank = checkUpdateRank(score);
-                        console.log("RANK=" +yourRank);
-                        if(yourRank > 0){
-                            txtEnding.text = "GAME OVER\r\n Get your No." + yourRank;                             
+                        console.log("RANK=" + yourRank);
+                        if (yourRank > 0) {
+                            txtEnding.text = "GAME OVER\r\n Get your No." + yourRank;
                         } else {
-                            txtEnding.text = "GAME OVER....";                             
+                            txtEnding.text = "GAME OVER....";
                         }
+                        btnReturn.visible = true;
                         playGameOver();
                     }
                 } else {
@@ -237,37 +291,37 @@
             if (bgm != null) {
                 bgm.stop();
             }
-            let bgmOver = currentScene.sound.add("bgm002", { loop: true });
+            bgmOver = currentScene.sound.add("bgm002", { loop: true });
             bgmOver.play();
             console.log("play");
         }
-        function checkUpdateRank(_score){
+        function checkUpdateRank(_score) {
             var yourRank = -1;
-            for(var i = 0; i < 5;i++){
-                if(scoreRank[i] < _score){
+            for (var i = 0; i < 5; i++) {
+                if (scoreRank[i] < _score) {
                     yourRank = i + 1;
-                    for(var j = 5; j >= i ; j--){
+                    for (var j = 5; j >= i; j--) {
                         scoreRank[j] = scoreRank[j - 1];
                     }
                     scoreRank[i] = _score;
                     localforage.setItem("ranking", scoreRank);
                     break;
-                }           
+                }
             }
             return yourRank;
         }
         var bGame = false;
         var timerCnt = 0;
         var score = 0;
-        var life = 2;
-        var bgm, seAttack, setPoint;
-        var txtLife, txtScore, txtEnding;
+        var life = MAX_LIFE;
+        var bgm, bgmOver, seAttack, setPoint;
+        var txtLife, txtScore, txtEnding, btnReturn, objBomb, clickButton;
 
         var config = {
             type: Phaser.AUTO,
             width: gameWidth,
             height: gameHeight,
-            backgroundColor: "#123456",
+            backgroundColor: "#eaffff",
             autoResize: true,
             scale: {
                 mode: Phaser.Scale.FIT,
