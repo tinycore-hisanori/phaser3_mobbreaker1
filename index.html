@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <meta name="viewport"
+        content="width = device-width, initial-scale = 1.0, minimum-scale = 1, maximum-scale = 1, user-scalable = no, viewport-fit=cover,minimal-ui" />
+    <title></title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="localforage.js"></script>
+</head>
+
+<style type="text/css">
+    body {
+        background-color: black;
+        min-height: 100vh;
+        min-width: 100vw;
+        height: 100%;
+        width: 100vw;
+        margin: auto;
+    }
+
+    #container {
+        position: absolute;
+        overflow: hidden;
+    }
+</style>
+
+<body>
+    <script>
+        var gameWidth = 720;
+        var gameHeight = 1280;
+        var stepY = 20;
+        var currentScene = null;
+        var scoreRank = [3, 2, 1, 0, 0];
+
+        class walkEntity extends Phaser.GameObjects.Sprite {
+            constructor(scene, charaId, x, y) {
+                super(scene, x, y);
+                if (charaId == 0) {
+                    this.setTexture("monster");
+                } else {
+                    this.setTexture("yusha");
+                }
+                this.setPosition(x, y);
+                scene.add.existing(this);
+                this.status = 0;
+                this.charaId = charaId;
+                this.secCnt = 0;
+                this.posX = x;
+                this.posY = y;
+                this.setFrame(0);
+                if (charaId == 0) {
+                    this.play("walkMonster");
+                    //                    this.setTexture("monster");
+                } else {
+                    this.play("walkYusha");
+                    //                    this.setTexture("yusha");
+                }
+                this.setInteractive();
+                this.on("pointerdown", function (pointer) {
+                    if (this.charaId == 0) {
+                        life = life - 1;
+                        console.log("DAMAGE! Life = " + life);
+                        currentScene.cameras.main.shake(200, 0.02);
+                    }
+                    seAttack.play();
+                    this.destroy();
+                });
+            }
+            preUpdate(time, delta) {
+                super.preUpdate(time, delta);
+                if (bGame == true) {
+                    this.secCnt = (this.secCnt + 1) % 4;
+                    if (this.secCnt == 0) {
+                        this.posY = this.posY + stepY;
+                        this.setPosition(this.posX, this.posY);
+                        if (this.posY >= gameHeight) {
+                            if (this.charaId == 0) {
+                                score = score + 1;
+                                console.log("GET Point Score = " + score);
+                                txtScore.text = "Score:" + score;
+                                setPoint.play();
+                            } else {
+                                life = life - 1;
+                                console.log("DAMAGE! Life = " + life);
+                                currentScene.cameras.main.shake(200, 0.02);
+                            }
+                            this.destroy();
+                        }
+                    }
+                } else {
+                    this.visible = false;
+                }
+            }
+        }
+
+
+        class titleScene extends Phaser.Scene {
+            constructor() {
+                super({ key: "titleScene", active: true });
+            }
+            create() {
+                let text = this.add
+                    .text(200, 100, "Yuusha Breaker!!")
+                    .setFontSize(46)
+                    .setColor("#ff0");
+                let clickButton = this.add.text(200, 300, "START TO CLICK", {
+                    fill: "#0f0"
+                });
+                clickButton
+                    .setStroke("#0000ff", 4)
+                    .setFontSize("40px")
+                    .setInteractive();
+                clickButton.on(
+                    "pointerdown",
+                    () => {
+                        this.scene.start("gameScene1");
+                    },
+                    this);
+                //localforage.setItem("ranking", scoreRank);
+                let txtRanking = this.add
+                    .text(300, 500, "<RANKING>\r\n")
+                    .setFontSize(32)
+                    .setColor("#ff0");
+
+                localforage.getItem("ranking", function (err, value) {
+                    for(var i = 0; i < 5; i++){
+                        txtRanking.text = txtRanking.text + "No."+ (i + 1) + ":" + value[i] + "\r\n";
+                        scoreRank[i] = value[i];
+                    }
+                });
+
+
+            }
+        }
+        class gameScene1 extends Phaser.Scene {
+            constructor() {
+                super({ key: "gameScene1", active: false });
+            }
+            preload() {
+                this.load.image("bg001", "./bg.jpg");
+                this.load.spritesheet("monster", "./monster.png", {
+                    frameWidth: 80,
+                    frameHeight: 80
+                });
+                this.load.spritesheet("yusha", "./yusha.png", {
+                    frameWidth: 80,
+                    frameHeight: 80
+                });
+
+                this.load.audio("bgm002", "gameover.mp3");
+                this.load.audio("bgm001", "bgm.mp3");
+                this.load.audio("attack", "punch01.mp3");
+                this.load.audio("point", "pointget.mp3");
+            }
+            create() {
+                currentScene = this;
+                var bg001 = this.add
+                    .tileSprite(0, 0, gameWidth, gameHeight, 'bg001')
+                    .setOrigin(0)
+                    .setScrollFactor(0);
+
+                this.anims.create({
+                    key: "walkMonster",
+                    frameRate: 5,
+                    frames: this.anims.generateFrameNumbers("monster", { start: 0, end: 1 }),
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: "walkYusha",
+                    frameRate: 5,
+                    frames: this.anims.generateFrameNumbers("yusha", { start: 0, end: 1 }),
+                    repeat: -1
+                });
+
+                txtLife = this.add
+                    .text(50, 20, "Life:" + life)
+                    .setFontSize(30)
+                    .setStroke("#ffffff", 2)
+                    .setColor("#ffffff");
+                txtScore = this.add
+                    .text(300, 20, "Score:0")
+                    .setFontSize(30)
+                    .setStroke("#ffffff", 2)
+                    .setColor("#ffffff");
+
+                txtEnding = this.add
+                    .text(200, 100, "")
+                    .setFontSize(46)
+                    .setColor("#ff0");
+
+
+                bgm = this.sound.add("bgm001", { loop: true });
+                if (!bgm.isPlaying) {
+                    bgm.play();
+                    console.log("play");
+                }
+
+                //playGameOver();
+                seAttack = this.sound.add("attack");
+                setPoint = this.sound.add("point");
+                bGame = true;
+            }
+            update() {
+                if (bGame == true) {
+                    stepY = 20 + (score * 2);
+                    timerCnt = (timerCnt + 1) % 30;
+                    if (timerCnt == 0) {
+                        var random = Math.round(Math.random() * 100);
+                        if (random > 35) {
+                            let posX = 10 + Math.round(Math.random() * (gameWidth - 10));
+                            let chara = Math.round(Math.random() * 1);
+                            let obj = new walkEntity(this, chara, posX, 0);
+                        }
+                    }
+                    txtLife.text = "life:" + life;
+                    if (life <= 0) {
+                        bGame = false;
+                        let yourRank = checkUpdateRank(score);
+                        console.log("RANK=" +yourRank);
+                        if(yourRank > 0){
+                            txtEnding.text = "GAME OVER\r\n Get your No." + yourRank;                             
+                        } else {
+                            txtEnding.text = "GAME OVER....";                             
+                        }
+                        playGameOver();
+                    }
+                } else {
+                    bgm.stop();
+                }
+            }
+        }
+        function playGameOver() {
+            if (bgm != null) {
+                bgm.stop();
+            }
+            let bgmOver = currentScene.sound.add("bgm002", { loop: true });
+            bgmOver.play();
+            console.log("play");
+        }
+        function checkUpdateRank(_score){
+            var yourRank = -1;
+            for(var i = 0; i < 5;i++){
+                if(scoreRank[i] < _score){
+                    yourRank = i + 1;
+                    for(var j = 5; j >= i ; j--){
+                        scoreRank[j] = scoreRank[j - 1];
+                    }
+                    scoreRank[i] = _score;
+                    localforage.setItem("ranking", scoreRank);
+                    break;
+                }           
+            }
+            return yourRank;
+        }
+        var bGame = false;
+        var timerCnt = 0;
+        var score = 0;
+        var life = 2;
+        var bgm, seAttack, setPoint;
+        var txtLife, txtScore, txtEnding;
+
+        var config = {
+            type: Phaser.AUTO,
+            width: gameWidth,
+            height: gameHeight,
+            backgroundColor: "#123456",
+            autoResize: true,
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+            },
+            parent: 'game',
+            title: 'Yusha Breaker',
+            version: '0.0.1',
+            audio: { disableWebAudio: true },
+            scene: [titleScene, gameScene1]
+        }
+        var game = new Phaser.Game(config);
+
+    </script>
+</body>
+
+</html>
