@@ -34,8 +34,9 @@ Phaser3.jsを使ってHTML5のゲームを作るときに参考にしてもら�
 
 # Requirement
  
-* Phase3.js - 3.55.2
-* Howler.js - 2.2.3
+* Phase3.js      - 3.55.2
+* localforage.js - 1.10.0
+* Howler.js      - 2.2.3
  
 # Note
 
