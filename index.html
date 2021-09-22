@@ -10,6 +10,7 @@
     <title></title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <script src="localforage.js"></script>
+    <script src="howler.js"></script>
 </head>
 
 <style type="text/css">
@@ -30,12 +31,28 @@
 
 <body>
     <script>
+        var bgm = new Howl({
+          src: ['bgm.mp3']
+        });
+
+        var bgmOver = new  Howl({
+          src: ['gameover.mp3']
+        });
+
+        var seAttack = new  Howl({
+          src: ['punch01.mp3']
+        });
+
+        var setPoint = new  Howl({
+          src: ['pointget.mp3']
+        });
+
         var gameWidth = 720;
         var gameHeight = 1280;
         var stepY = 20;
         var MAX_LIFE = 3;
         var currentScene = null;
-        var scoreRank = [0, 0, 0, 0, 0];
+        var scoreRank = [5, 5, 2, 0, 0];
 
         class walkEntity extends Phaser.GameObjects.Sprite {
             constructor(scene, charaId, x, y) {
@@ -106,9 +123,14 @@
                 super({ key: "titleScene", active: true });
             }
             preload() {
-                this.load.image("title", "title.png");
+                this.load.image("titleBg", "title_bg.jpg");
+                this.load.image("title", "title2.png");
             }
             create() {
+                var bg001 = this.add
+                    .tileSprite(0, 0, gameWidth, gameHeight, 'titleBg')
+                    .setOrigin(0)
+                    .setScrollFactor(0);
                 let titleImg = this.add.sprite(gameWidth / 2, 100, "title");
                 /*
                 let text = this.add
@@ -139,9 +161,10 @@
                 })
                 //localforage.setItem("ranking", scoreRank);
                 let txtRanking = this.add
-                    .text(300, 500, "<RANKING>\r\n")
+                    .text(420, 500, "【RANKING】\r\n")
                     .setFontSize(32)
-                    .setColor("#191970");
+                    .setStroke("#AABB11", 4)
+                    .setColor("#AABB11");
 
                 localforage.getItem("ranking", function (err, value) {
                     if (value != null) {
@@ -150,7 +173,7 @@
                         }
                     }
                     for (var i = 0; i < 5; i++) {
-                        txtRanking.text = txtRanking.text + "No." + (i + 1) + ":" + scoreRank[i] + "\r\n";
+                        txtRanking.text = txtRanking.text + "  No." + (i + 1) + ":" + scoreRank[i] + "\r\n";
                     }
 
                 });
@@ -174,11 +197,6 @@
                     frameWidth: 64,
                     frameHeight: 64
                 });
-
-                this.load.audio("bgm002", "gameover.mp3");
-                this.load.audio("bgm001", "bgm.mp3");
-                this.load.audio("attack", "punch01.mp3");
-                this.load.audio("point", "pointget.mp3");
             }
             create() {
                 currentScene = this;
@@ -247,15 +265,12 @@
                     repeat: 0
                 });
                 objBomb = this.add.sprite(-100, -100, 'bomb');
-
-                bgm = this.sound.add("bgm001", { loop: true });
-                if (!bgm.isPlaying) {
-                    bgm.play();
-                    console.log("play");
-                }
-                seAttack = this.sound.add("attack");
-                setPoint = this.sound.add("point");
                 bGame = true;
+
+                bgm.loop(true);
+                bgmOver.loop(true);
+                bgm.play();
+
             }
             update() {
                 if (bGame == true) {
@@ -272,7 +287,7 @@
                     txtLife.text = "life:" + life;
                     if (life <= 0) {
                         bGame = false;
-                        let yourRank = checkUpdateRank(score);
+                        let yourRank = checkRank(score);
                         console.log("RANK=" + yourRank);
                         if (yourRank > 0) {
                             txtEnding.text = "GAME OVER\r\n Get your No." + yourRank;
@@ -291,30 +306,27 @@
             if (bgm != null) {
                 bgm.stop();
             }
-            bgmOver = currentScene.sound.add("bgm002", { loop: true });
+            
             bgmOver.play();
             console.log("play");
         }
-        function checkUpdateRank(_score) {
-            var yourRank = -1;
+
+        function checkRank(_score) {
             for (var i = 0; i < 5; i++) {
                 if (scoreRank[i] < _score) {
-                    yourRank = i + 1;
                     for (var j = 5; j >= i; j--) {
                         scoreRank[j] = scoreRank[j - 1];
                     }
                     scoreRank[i] = _score;
-                    localforage.setItem("ranking", scoreRank);
                     break;
                 }
             }
-            return yourRank;
         }
         var bGame = false;
         var timerCnt = 0;
         var score = 0;
         var life = MAX_LIFE;
-        var bgm, bgmOver, seAttack, setPoint;
+        
         var txtLife, txtScore, txtEnding, btnReturn, objBomb, clickButton;
 
         var config = {
