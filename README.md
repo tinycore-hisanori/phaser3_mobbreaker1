@@ -30,10 +30,12 @@ Phaser3.jsを使ってHTML5のゲームを作るときに参考にしてもら�
 * npmを利用しないパターンでのPhaser3.jsのプログラミングが学べる
 * スマホの画面サイズでゲームを作る方法を学べる
 * スコア管理の仕方を学べる
+* スマホでの音声再生の方法が学べる(Howler.js利用)
 
 # Requirement
  
 * Phase3.js - 3.55.2
+* Howler.js - 2.2.3
  
 # Note
 
